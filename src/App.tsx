@@ -3,12 +3,11 @@ import { LogIn, LogOut, User, Key, Check, X } from 'lucide-react';
 
 export default function ClerkPKCETest() {
   const [config, setConfig] = useState({
-    issuerUrl: 'https://clerk.yoona.ai',
-    clientId: 'dpC4AdE7tIwG5DS7',
+    issuerUrl: 'https://dynamic-antelope-48.clerk.accounts.dev',
+    clientId: 'N7eToShSxeT8O3vL',
     redirectUri: window.location.origin,
   });
 
-  console.log(window.location.origin)
 
   const [isConfigured, setIsConfigured] = useState(false);
   const [user, setUser] = useState(null);
@@ -45,12 +44,6 @@ export default function ClerkPKCETest() {
       .replace(/\//g, '_')
       .replace(/=/g, '');
 
-    console.log('🔐 Generated PKCE:');
-    console.log('  - Verifier length:', verifier.length);
-    console.log('  - Challenge length:', challenge.length);
-    console.log('  - Verifier sample:', verifier.substring(0, 20) + '...');
-    console.log('  - Challenge sample:', challenge.substring(0, 20) + '...');
-
     return { verifier, challenge };
   };
 
@@ -79,16 +72,10 @@ export default function ClerkPKCETest() {
 
       authUrl.searchParams.append('redirect_uri', config.redirectUri);
       authUrl.searchParams.append('response_type', 'code');
-      authUrl.searchParams.append('scope', 'openid profile email');
+      authUrl.searchParams.append('scope', 'openid profile email public_metadata private_metadata');
       authUrl.searchParams.append('state', state);
       authUrl.searchParams.append('code_challenge', challenge);
       authUrl.searchParams.append('code_challenge_method', 'S256');
-
-      // Debug: Log the redirect URI being used
-      console.log('🔗 Redirect URI being sent:', config.redirectUri);
-      console.log('� PKCE Code Challenge:', challenge);
-      console.log('🔑 PKCE Code Verifier:', verifier);
-      console.log('�📋 Full auth URL:', authUrl.toString());
 
       // Redirect to Clerk
       window.location.href = authUrl.toString();
@@ -120,14 +107,6 @@ export default function ClerkPKCETest() {
         throw new Error('PKCE verifier not found in session storage. This might be a browser privacy setting issue.');
       }
 
-      // Debug logging
-      console.log('🔙 Callback received');
-      console.log('🔑 Code Verifier from storage:', verifier);
-      console.log('🎯 State matches:', state === storedState);
-
-
-      // Exchange code for tokens
-      console.log('🔄 Exchanging code for tokens...');
       const tokenParams = {
         grant_type: 'authorization_code',
         code: code,
@@ -135,7 +114,6 @@ export default function ClerkPKCETest() {
         client_id: storedConfig.clientId,
         code_verifier: verifier,
       };
-      console.log('📤 Token request params:', tokenParams);
 
       const tokenResponse = await fetch(`${storedConfig.issuerUrl}/oauth/token`, {
         method: 'POST',
@@ -148,18 +126,15 @@ export default function ClerkPKCETest() {
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
-        console.error('❌ Token exchange failed:', errorData);
         throw new Error(`Token exchange failed: ${errorData.error_description || errorData.error || tokenResponse.statusText}`);
       }
 
       const tokenData = await tokenResponse.json();
-      console.log('✅ Token exchange successful:', tokenData);
       setTokens(tokenData);
 
       // Decode ID token to get user info (simple base64 decode)
       if (tokenData.id_token) {
-        const payload = JSON.parse( atob(tokenData.id_token.split('.')[1]) );
-        console.log('👤 Decoded user info from ID token:', payload);
+        const payload = JSON.parse(atob(tokenData.id_token.split('.')[1]));
         setUser(payload);
       }
 
